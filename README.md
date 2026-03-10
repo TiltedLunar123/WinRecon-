@@ -1,6 +1,6 @@
 # 🔍 WinRecon — Python Windows Auditing Toolkit
 
-> **Author:** Jude Hilgendorf  
+> **Author:** Jude Hilgendorf
 > **GitHub:** [github.com/TiltedLunar123](https://github.com/TiltedLunar123)
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
@@ -36,33 +36,52 @@ A single-file Python toolkit that performs a comprehensive security audit of Win
 
 ## ⚡ Quick Start
 
+```bash
 # Clone the repo
 git clone https://github.com/TiltedLunar123/WinRecon.git
 cd WinRecon
 
 # Run (recommend: elevated / admin terminal)
 python winrecon.py
+```
 
-No dependencies — uses only the Python standard library + built-in Windows tools (netstat, ipconfig, net, PowerShell).
+**No dependencies** — uses only the Python standard library + built-in Windows tools (`netstat`, `ipconfig`, `net`, PowerShell).
 
-📋 Requirements
-Python 3.8+
-Windows 10 / 11 / Server 2016+
-Administrator privileges recommended for full audit (runs in limited mode without)
-📄 Output
-Terminal
+---
+
+## 📋 Requirements
+
+- **Python 3.8+**
+- **Windows 10 / 11 / Server 2016+**
+- **Administrator privileges** recommended for full audit (runs in limited mode without)
+
+---
+
+## 📄 Output
+
+### Terminal
+
 Color-coded terminal output with severity indicators:
 
+```
 [✓]  — Passed / secure configuration
 [!]  — Warning-level finding
 [!!] — Critical finding
-JSON Report
+```
+
+### JSON Report
+
 Automatically exports a full JSON report:
 
+```
 winrecon_HOSTNAME_20250615_143022.json
-📸 Example Output
-text
+```
 
+---
+
+## 📸 Example Output
+
+```
 ══════════════════════════════════════════════════════════════════════
   [ FINDINGS SUMMARY ]
 ══════════════════════════════════════════════════════════════════════
@@ -83,26 +102,43 @@ text
     [!] Port 3389 (RDP) listening
     [!] Risky service running: RemoteRegistry
     [!] RDP NLA is disabled
-🏗️ Project Structure
-
-WinRecon/
-├── winrecon.py      # Complete toolkit (single file)
-└── README.md        # This file
-⚠️ Disclaimer
-This tool is intended for authorized security auditing only. Only run WinRecon on systems you own or have explicit written permission to audit. The author is not responsible for misuse.
-
-📜 License
-MIT License — see LICENSE for details.
-
-Built for defenders. Stay secure. 🛡️
+```
 
 ---
 
-## Key Design Decisions
+## 🏗️ Project Structure
 
-1. **Single file** — zero friction, clone-and-run, no `pip install` needed
-2. **Modular functions** — each audit area is its own function, easy to extend
-3. **Dual output** — pretty color terminal output **+** machine-readable JSON export
-4. **Severity system** — findings tagged CRITICAL / WARNING / INFO with a summary at the end
-5. **Graceful degradation** — runs without admin (limited), catches all exceptions per-module so one failure doesn't kill the scan
-6. **Platform gate** — clean exit message if accidentally run on Linux/Mac
+```
+WinRecon/
+├── winrecon.py      # Complete toolkit (single file)
+└── README.md        # This file
+```
+
+---
+
+## 🔧 Key Design Decisions
+
+| Decision | Why |
+|----------|-----|
+| **Single file** | Zero friction — clone and run, no `pip install` needed |
+| **Modular functions** | Each audit area is its own function, easy to extend |
+| **Dual output** | Pretty color terminal output + machine-readable JSON export |
+| **Severity system** | Findings tagged CRITICAL / WARNING / INFO with summary |
+| **Graceful degradation** | Runs without admin (limited), one module failure doesn't kill the scan |
+| **Platform gate** | Clean exit message if accidentally run on Linux or Mac |
+
+---
+
+## ⚠️ Disclaimer
+
+This tool is intended for **authorized security auditing only**. Only run WinRecon on systems you own or have explicit written permission to audit. The author is not responsible for misuse.
+
+---
+
+## 📜 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center"><b>Built for defenders. Stay secure.</b> 🛡️</p>
