@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install dependencies
+        run: pip install pytest
+
       - name: Verify syntax
         run: python -c "import ast; ast.parse(open('winrecon.py', encoding='utf-8').read()); print('Syntax OK')"
 
