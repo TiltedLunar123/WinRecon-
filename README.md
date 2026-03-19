@@ -2,7 +2,7 @@
 
 # 🛡️ WinRecon — Windows Security Auditing & Hardening Toolkit
 
-![Version](https://img.shields.io/badge/version-3.0.0-purple)
+![Version](https://img.shields.io/badge/version-3.1.0-purple)
 ![Python](https://img.shields.io/badge/python-3.8%2B-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-purple)
 ![License](https://img.shields.io/badge/license-MIT-purple)
@@ -131,9 +131,11 @@ winrecon_reports/
 ## 🖥️ Command-Line Options
 
 ```
-usage: WinRecon [-h] [--output-dir OUTPUT_DIR] [--json-only] [--no-html] [--verbose] [--version]
+usage: WinRecon [-h] [--output-dir OUTPUT_DIR] [--json-only] [--no-html]
+                [--verbose] [--quiet] [--timeout TIMEOUT]
+                [--keywords-file FILE] [--version]
 
-WinRecon v3.0.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
+WinRecon v3.1.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
 
 options:
   -h, --help            show this help message and exit
@@ -141,6 +143,9 @@ options:
   --json-only           Export JSON only, skip HTML report generation
   --no-html             Skip HTML report generation
   --verbose             Enable verbose console output (DEBUG level)
+  --quiet, -q           Suppress all console output (log file is still written)
+  --timeout, -t         Timeout in seconds for each system command (default: 60)
+  --keywords-file       Path to a JSON file with custom suspicious keyword lists
   --version, -v         show program's version number and exit
 ```
 
@@ -211,10 +216,36 @@ $results.score
 $results.findings | Where-Object { $_.severity -eq "CRITICAL" }
 ```
 
+### Quiet Mode for Scheduled Tasks
+```powershell
+# Silent scan — output only goes to log file
+python winrecon.py --quiet --output-dir "C:\Audits"
+```
+
+### Custom Timeout
+```powershell
+# Increase command timeout for slow systems
+python winrecon.py --timeout 120
+```
+
+### Custom Suspicious Keywords
+```powershell
+# Override built-in suspicious keywords with your own list
+python winrecon.py --keywords-file custom_keywords.json
+```
+
+The keywords file format:
+```json
+{
+  "suspicious_keywords": ["custom_pattern_1", "custom_pattern_2"],
+  "trusted_paths": ["\\MyVendor\\", "\\TrustedApp\\"]
+}
+```
+
 ### Scheduled Recurring Audit
 ```powershell
 # Create a scheduled task to run weekly audits
-schtasks /create /tn "WinRecon Weekly Audit" /tr "python C:\Tools\winrecon.py --output-dir C:\Audits" /sc weekly /d MON /st 06:00 /ru SYSTEM
+schtasks /create /tn "WinRecon Weekly Audit" /tr "python C:\Tools\winrecon.py --quiet --output-dir C:\Audits" /sc weekly /d MON /st 06:00 /ru SYSTEM
 ```
 
 ---
@@ -269,7 +300,7 @@ WinRecon scans scheduled tasks and startup entries for these known attack indica
 ```json
 {
   "tool": "WinRecon",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "author": "JUDE HILGENDORF",
   "system_info": {
     "hostname": "WORKSTATION-01",
@@ -346,6 +377,41 @@ WinRecon is designed for **authorized security assessments only**. Always ensure
 ## 👤 Author
 
 **JUDE HILGENDORF**
+
+---
+
+## 🔢 Exit Codes
+
+WinRecon returns meaningful exit codes for scripting and CI/CD integration:
+
+| Code | Meaning |
+|------|---------|
+| `0` | All checks passed (no critical or warning findings) |
+| `1` | Warning-level findings detected |
+| `2` | Critical-level findings detected |
+| `3` | Runtime error (invalid arguments, missing files, etc.) |
+
+```powershell
+# Example: fail a CI pipeline if critical findings exist
+python winrecon.py --quiet --json-only
+if ($LASTEXITCODE -eq 2) { Write-Error "Critical security issues found!" }
+```
+
+---
+
+## 🧪 Testing
+
+WinRecon includes a comprehensive test suite with 41 tests covering core logic:
+
+```bash
+# Run all tests
+python -m pytest test_winrecon.py -v
+
+# Run with coverage (requires pytest-cov)
+python -m pytest test_winrecon.py --cov=winrecon --cov-report=term-missing
+```
+
+Tests cover: `Finding` class, `calculate_score()`, `_esc()` HTML escaping, `run_command()`, `reg_read()`, `parse_arguments()`, JSON export, HTML report generation (including XSS prevention), custom keyword loading, and exit codes.
 
 ---
 

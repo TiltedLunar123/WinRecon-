@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Verify syntax
+        run: python -c "import ast; ast.parse(open('winrecon.py', encoding='utf-8').read()); print('Syntax OK')"
+
+      - name: Run tests
+        run: python -m pytest test_winrecon.py -v --tb=short
+
+      - name: Type check (Python 3.10+)
+        if: matrix.python-version != '3.8'
+        run: |
+          pip install mypy
+          python -m mypy winrecon.py --ignore-missing-imports --no-error-summary || true

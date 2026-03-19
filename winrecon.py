@@ -1,9 +1,9 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 WinRecon - Windows Security Auditing & Hardening Toolkit
 =========================================================
 Author:  JUDE HILGENDORF
-Version: 2.0.0
+Version: 3.1.0
 License: MIT
 Python:  3.8+
 
@@ -39,11 +39,22 @@ import winreg
 from collections import defaultdict
 from pathlib import Path
 
-VERSION = "3.0.0"
+from typing import Any, Dict, List, Optional
+
+VERSION = "3.1.0"
 TOOL_NAME = "WinRecon"
 AUTHOR = "JUDE HILGENDORF"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 HOSTNAME = platform.node()
+
+# Exit codes
+EXIT_SUCCESS = 0
+EXIT_CRITICAL = 2
+EXIT_WARNING = 1
+EXIT_ERROR = 3
+
+# Default command timeout (seconds)
+DEFAULT_TIMEOUT = 60
 
 SEVERITY_WEIGHT = {
     "CRITICAL": 20,
@@ -135,12 +146,17 @@ TRUSTED_TASK_PATHS = [
 ]
 
 
-def setup_logging(output_dir: Path, verbose: bool = False) -> logging.Logger:
+def setup_logging(output_dir: Path, verbose: bool = False, quiet: bool = False) -> logging.Logger:
     logger = logging.getLogger(TOOL_NAME)
     logger.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    if quiet:
+        console_handler.setLevel(logging.CRITICAL + 1)
+    elif verbose:
+        console_handler.setLevel(logging.DEBUG)
+    else:
+        console_handler.setLevel(logging.INFO)
     console_fmt = logging.Formatter("[%(levelname)-8s] %(message)s")
     console_handler.setFormatter(console_fmt)
     logger.addHandler(console_handler)
@@ -165,7 +181,7 @@ def is_admin() -> bool:
         return False
 
 
-def run_command(cmd: str, timeout: int = 60) -> str:
+def run_command(cmd: str, timeout: int = DEFAULT_TIMEOUT) -> str:
     log = logging.getLogger(TOOL_NAME)
     try:
         cflags = 0
@@ -188,7 +204,7 @@ def run_command(cmd: str, timeout: int = 60) -> str:
         return ""
 
 
-def reg_read(hive, key_path: str, value_name: str, default=None):
+def reg_read(hive: int, key_path: str, value_name: str, default: Any = None) -> Any:
     try:
         with winreg.OpenKey(hive, key_path) as key:
             data, _ = winreg.QueryValueEx(key, value_name)
@@ -197,7 +213,7 @@ def reg_read(hive, key_path: str, value_name: str, default=None):
         return default
 
 
-def reg_enum_values(hive, key_path: str) -> dict:
+def reg_enum_values(hive: int, key_path: str) -> Dict[str, Any]:
     results = {}
     try:
         with winreg.OpenKey(hive, key_path) as key:
@@ -233,7 +249,7 @@ class Finding:
         self.detail = detail
         self.remediation = remediation
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, str]:
         return {
             "check_id": self.check_id,
             "category": self.category,
@@ -245,7 +261,7 @@ class Finding:
         }
 
 
-def collect_system_info(log: logging.Logger) -> dict:
+def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
     log.info("Collecting system information...")
     info = {
         "hostname": HOSTNAME,
@@ -274,7 +290,7 @@ def collect_system_info(log: logging.Logger) -> dict:
     return info
 
 
-def check_local_users(log: logging.Logger) -> list:
+def check_local_users(log: logging.Logger) -> List[Finding]:
     log.info("Checking local user accounts...")
     findings = []
     output = run_command(
@@ -350,7 +366,7 @@ def check_local_users(log: logging.Logger) -> list:
     return findings
 
 
-def check_local_admins(log: logging.Logger) -> list:
+def check_local_admins(log: logging.Logger) -> List[Finding]:
     log.info("Checking local Administrators group membership...")
     findings = []
     output = run_command("net localgroup Administrators")
@@ -387,7 +403,7 @@ def check_local_admins(log: logging.Logger) -> list:
     return findings
 
 
-def check_password_policy(log: logging.Logger) -> list:
+def check_password_policy(log: logging.Logger) -> List[Finding]:
     log.info("Checking password policy...")
     findings = []
     output = run_command("net accounts")
@@ -482,7 +498,7 @@ def check_password_policy(log: logging.Logger) -> list:
     return findings
 
 
-def check_open_ports(log: logging.Logger) -> list:
+def check_open_ports(log: logging.Logger) -> List[Finding]:
     log.info("Checking open / listening ports...")
     findings = []
     output = run_command("netstat -ano -p TCP")
@@ -546,7 +562,7 @@ def check_open_ports(log: logging.Logger) -> list:
     return findings
 
 
-def check_firewall(log: logging.Logger) -> list:
+def check_firewall(log: logging.Logger) -> List[Finding]:
     log.info("Checking Windows Firewall status...")
     findings = []
     output = run_command("netsh advfirewall show allprofiles state")
@@ -598,7 +614,7 @@ def check_firewall(log: logging.Logger) -> list:
     return findings
 
 
-def check_smb_v1(log: logging.Logger) -> list:
+def check_smb_v1(log: logging.Logger) -> List[Finding]:
     log.info("Checking SMBv1 status...")
     findings = []
     smb1_val = reg_read(
@@ -635,7 +651,7 @@ def check_smb_v1(log: logging.Logger) -> list:
     return findings
 
 
-def check_rdp(log: logging.Logger) -> list:
+def check_rdp(log: logging.Logger) -> List[Finding]:
     log.info("Checking RDP configuration...")
     findings = []
     rdp_enabled = reg_read(
@@ -674,7 +690,7 @@ def check_rdp(log: logging.Logger) -> list:
     return findings
 
 
-def check_audit_policy(log: logging.Logger) -> list:
+def check_audit_policy(log: logging.Logger) -> List[Finding]:
     log.info("Checking audit policy...")
     findings = []
     output = run_command("auditpol /get /category:*")
@@ -743,7 +759,7 @@ def check_audit_policy(log: logging.Logger) -> list:
     return findings
 
 
-def check_windows_update(log: logging.Logger) -> list:
+def check_windows_update(log: logging.Logger) -> List[Finding]:
     log.info("Checking Windows Update status...")
     findings = []
     output = run_command('wmic qfe get InstalledOn /format:csv')
@@ -790,7 +806,7 @@ def check_windows_update(log: logging.Logger) -> list:
     return findings
 
 
-def check_antivirus(log: logging.Logger) -> list:
+def check_antivirus(log: logging.Logger) -> List[Finding]:
     log.info("Checking antivirus status...")
     findings = []
     defender_output = run_command(
@@ -866,7 +882,7 @@ def check_antivirus(log: logging.Logger) -> list:
     return findings
 
 
-def check_scheduled_tasks(log: logging.Logger) -> list:
+def check_scheduled_tasks(log: logging.Logger) -> List[Finding]:
     log.info("Checking scheduled tasks for suspicious entries...")
     findings = []
     output = run_command('schtasks /query /fo CSV /v')
@@ -937,7 +953,7 @@ def check_scheduled_tasks(log: logging.Logger) -> list:
     return findings
 
 
-def check_startup_programs(log: logging.Logger) -> list:
+def check_startup_programs(log: logging.Logger) -> List[Finding]:
     log.info("Checking startup programs...")
     findings = []
     startup_locations = [
@@ -982,7 +998,7 @@ def check_startup_programs(log: logging.Logger) -> list:
     return findings
 
 
-def check_powershell_settings(log: logging.Logger) -> list:
+def check_powershell_settings(log: logging.Logger) -> List[Finding]:
     log.info("Checking PowerShell security settings...")
     findings = []
     exec_policy = run_command(
@@ -1042,7 +1058,7 @@ def check_powershell_settings(log: logging.Logger) -> list:
     return findings
 
 
-def check_uac(log: logging.Logger) -> list:
+def check_uac(log: logging.Logger) -> List[Finding]:
     log.info("Checking UAC settings...")
     findings = []
     uac_key = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
@@ -1074,7 +1090,7 @@ def check_uac(log: logging.Logger) -> list:
     return findings
 
 
-def check_bitlocker(log: logging.Logger) -> list:
+def check_bitlocker(log: logging.Logger) -> List[Finding]:
     log.info("Checking BitLocker encryption status...")
     findings = []
     output = run_command(
@@ -1129,7 +1145,7 @@ def check_bitlocker(log: logging.Logger) -> list:
     return findings
 
 
-def check_credential_guard(log: logging.Logger) -> list:
+def check_credential_guard(log: logging.Logger) -> List[Finding]:
     log.info("Checking Credential Guard status...")
     findings = []
     cg_val = reg_read(
@@ -1179,7 +1195,7 @@ def check_credential_guard(log: logging.Logger) -> list:
     return findings
 
 
-def check_secure_boot(log: logging.Logger) -> list:
+def check_secure_boot(log: logging.Logger) -> List[Finding]:
     log.info("Checking Secure Boot status...")
     findings = []
     output = run_command(
@@ -1207,7 +1223,7 @@ def check_secure_boot(log: logging.Logger) -> list:
     return findings
 
 
-def check_network_shares(log: logging.Logger) -> list:
+def check_network_shares(log: logging.Logger) -> List[Finding]:
     log.info("Checking network shares...")
     findings = []
     output = run_command("net share")
@@ -1253,7 +1269,7 @@ def check_network_shares(log: logging.Logger) -> list:
     return findings
 
 
-def check_event_log_service(log: logging.Logger) -> list:
+def check_event_log_service(log: logging.Logger) -> List[Finding]:
     log.info("Checking Windows Event Log service...")
     findings = []
     output = run_command("sc query EventLog")
@@ -1320,7 +1336,7 @@ def check_event_log_service(log: logging.Logger) -> list:
     return findings
 
 
-def check_installed_software(log: logging.Logger) -> list:
+def check_installed_software(log: logging.Logger) -> List[Finding]:
     log.info("Inventorying installed software...")
     findings = []
     uninstall_paths = [
@@ -1382,7 +1398,7 @@ def check_installed_software(log: logging.Logger) -> list:
     return findings
 
 
-def calculate_score(findings: list) -> dict:
+def calculate_score(findings: List[Finding]) -> Dict[str, Any]:
     score = 100
     crit_count = 0
     warn_count = 0
@@ -1435,9 +1451,9 @@ def _esc(text: str) -> str:
 
 
 def generate_html_report(
-    system_info: dict,
-    findings: list,
-    score_data: dict,
+    system_info: Dict[str, Any],
+    findings: List[Finding],
+    score_data: Dict[str, Any],
     output_path: Path,
     log: logging.Logger,
 ) -> None:
@@ -1580,9 +1596,9 @@ def generate_html_report(
 
 
 def export_json(
-    system_info: dict,
-    findings: list,
-    score_data: dict,
+    system_info: Dict[str, Any],
+    findings: List[Finding],
+    score_data: Dict[str, Any],
     output_path: Path,
     log: logging.Logger,
 ) -> None:
@@ -1599,7 +1615,7 @@ def export_json(
     log.info(f"JSON report saved: {output_path}")
 
 
-def run_all_checks(log: logging.Logger) -> list:
+def run_all_checks(log: logging.Logger) -> List[Finding]:
     all_findings = []
     checks = [
         ("Local User Accounts", check_local_users),
@@ -1676,6 +1692,23 @@ def parse_arguments() -> argparse.Namespace:
         help="Enable verbose console output (DEBUG level).",
     )
     parser.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Suppress all console output (log file is still written).",
+    )
+    parser.add_argument(
+        "--timeout", "-t",
+        type=int,
+        default=DEFAULT_TIMEOUT,
+        help=f"Timeout in seconds for each system command (default: {DEFAULT_TIMEOUT}).",
+    )
+    parser.add_argument(
+        "--keywords-file",
+        type=str,
+        default=None,
+        help="Path to a JSON file with custom suspicious keyword lists (overrides built-in defaults).",
+    )
+    parser.add_argument(
         "--version", "-v",
         action="version",
         version=f"{TOOL_NAME} v{VERSION} by {AUTHOR}",
@@ -1683,7 +1716,7 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def print_banner():
+def print_banner() -> None:
     banner = rf"""
     ╔══════════════════════════════════════════════════════╗
     ║                                                      ║
@@ -1702,25 +1735,50 @@ def print_banner():
     print(banner)
 
 
-def main():
+def load_custom_keywords(filepath: str, log: logging.Logger) -> None:
+    global SUSPICIOUS_TASK_KEYWORDS, TRUSTED_TASK_PATHS
+    try:
+        with open(filepath, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        if "suspicious_keywords" in data:
+            SUSPICIOUS_TASK_KEYWORDS = data["suspicious_keywords"]
+            log.info(f"Loaded {len(SUSPICIOUS_TASK_KEYWORDS)} custom suspicious keywords.")
+        if "trusted_paths" in data:
+            TRUSTED_TASK_PATHS = data["trusted_paths"]
+            log.info(f"Loaded {len(TRUSTED_TASK_PATHS)} custom trusted paths.")
+    except (json.JSONDecodeError, OSError) as exc:
+        log.error(f"Failed to load keywords file '{filepath}': {exc}")
+        sys.exit(EXIT_ERROR)
+
+
+def main() -> int:
     if sys.platform != "win32":
         print("[ERROR] WinRecon is designed for Windows systems only.")
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
 
     if sys.version_info < (3, 8):
         print("[ERROR] WinRecon requires Python 3.8 or higher.")
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
 
-    print_banner()
     args = parse_arguments()
+
+    if not args.quiet:
+        print_banner()
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    log = setup_logging(output_dir, verbose=args.verbose)
+    # Apply global timeout override
+    global DEFAULT_TIMEOUT
+    DEFAULT_TIMEOUT = args.timeout
+
+    log = setup_logging(output_dir, verbose=args.verbose, quiet=args.quiet)
 
     log.info(f"{TOOL_NAME} v{VERSION} by {AUTHOR} starting...")
     log.info(f"Output directory: {output_dir.resolve()}")
+
+    if args.keywords_file:
+        load_custom_keywords(args.keywords_file, log)
 
     if not is_admin():
         log.warning("NOT running as Administrator. Some checks will be limited.")
@@ -1758,13 +1816,21 @@ def main():
     log.info(f"Reports saved to: {output_dir.resolve()}")
     log.info("Done.")
 
-    print(f"\n{'═' * 55}")
-    print(f"  SECURITY SCORE: {score_data['score']}/100  (Grade: {score_data['grade']})")
-    print(f"  Critical: {score_data['critical']}  |  Warnings: {score_data['warning']}  "
-          f"|  Passed: {score_data['pass']}  |  Info: {score_data['info']}")
-    print(f"{'═' * 55}")
-    print(f"\nReports: {output_dir.resolve()}\n")
+    if not args.quiet:
+        print(f"\n{'═' * 55}")
+        print(f"  SECURITY SCORE: {score_data['score']}/100  (Grade: {score_data['grade']})")
+        print(f"  Critical: {score_data['critical']}  |  Warnings: {score_data['warning']}  "
+              f"|  Passed: {score_data['pass']}  |  Info: {score_data['info']}")
+        print(f"{'═' * 55}")
+        print(f"\nReports: {output_dir.resolve()}\n")
+
+    # Return exit code based on findings
+    if score_data["critical"] > 0:
+        return EXIT_CRITICAL
+    elif score_data["warning"] > 0:
+        return EXIT_WARNING
+    return EXIT_SUCCESS
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

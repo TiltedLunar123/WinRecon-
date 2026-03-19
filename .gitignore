@@ -1,2 +1,7 @@
 ﻿# WinRecon generated reports (runtime output)
 winrecon_reports/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
