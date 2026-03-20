@@ -2,7 +2,7 @@
 
 # 🛡️ WinRecon — Windows Security Auditing & Hardening Toolkit
 
-![Version](https://img.shields.io/badge/version-3.1.0-purple)
+![Version](https://img.shields.io/badge/version-4.0.0-purple)
 ![Python](https://img.shields.io/badge/python-3.8%2B-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-purple)
 ![License](https://img.shields.io/badge/license-MIT-purple)
@@ -30,17 +30,23 @@ The generated HTML report features:
 ## ⚡ Quick Start
 
 ```bash
+# Install (optional — or just run directly)
+pip install .
+
 # Basic scan (creates ./winrecon_reports/ with HTML + JSON)
-python winrecon.py
+python -m winrecon
 
 # Custom output directory
-python winrecon.py --output-dir C:\SecurityReports
+python -m winrecon --output-dir C:\SecurityReports
 
 # JSON export only (skip HTML)
-python winrecon.py --json-only
+python -m winrecon --json-only
 
 # Show version
-python winrecon.py --version
+python -m winrecon --version
+
+# Legacy entry point (still works)
+python -m winrecon
 ```
 
 > **Important:** Run as **Administrator** for full results. Right-click your terminal and select **Run as Administrator**, or use an elevated PowerShell prompt. WinRecon will still work without admin privileges but some checks will return limited data.
@@ -135,7 +141,7 @@ usage: WinRecon [-h] [--output-dir OUTPUT_DIR] [--json-only] [--no-html]
                 [--verbose] [--quiet] [--timeout TIMEOUT]
                 [--keywords-file FILE] [--version]
 
-WinRecon v3.1.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
+WinRecon v4.0.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
 
 options:
   -h, --help            show this help message and exit
@@ -192,23 +198,23 @@ options:
 ### Basic Security Audit
 ```powershell
 # Open an elevated PowerShell prompt, then:
-python winrecon.py
+python -m winrecon
 ```
 
 ### Save Reports to a Specific Folder
 ```powershell
-python winrecon.py --output-dir "C:\Audits\Q1-2025"
+python -m winrecon --output-dir "C:\Audits\Q1-2025"
 ```
 
 ### JSON Only (for Automated Pipelines)
 ```powershell
-python winrecon.py --json-only --output-dir "C:\Audits\automated"
+python -m winrecon --json-only --output-dir "C:\Audits\automated"
 ```
 
 ### Integration with Other Tools
 ```powershell
 # Run scan and parse JSON output programmatically
-python winrecon.py --json-only -o C:\temp\scan
+python -m winrecon --json-only -o C:\temp\scan
 
 # Then in your pipeline:
 $results = Get-Content "C:\temp\scan\winrecon_*.json" | ConvertFrom-Json
@@ -219,19 +225,19 @@ $results.findings | Where-Object { $_.severity -eq "CRITICAL" }
 ### Quiet Mode for Scheduled Tasks
 ```powershell
 # Silent scan — output only goes to log file
-python winrecon.py --quiet --output-dir "C:\Audits"
+python -m winrecon --quiet --output-dir "C:\Audits"
 ```
 
 ### Custom Timeout
 ```powershell
 # Increase command timeout for slow systems
-python winrecon.py --timeout 120
+python -m winrecon --timeout 120
 ```
 
 ### Custom Suspicious Keywords
 ```powershell
 # Override built-in suspicious keywords with your own list
-python winrecon.py --keywords-file custom_keywords.json
+python -m winrecon --keywords-file custom_keywords.json
 ```
 
 The keywords file format:
@@ -300,7 +306,7 @@ WinRecon scans scheduled tasks and startup entries for these known attack indica
 ```json
 {
   "tool": "WinRecon",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "author": "JUDE HILGENDORF",
   "system_info": {
     "hostname": "WORKSTATION-01",
@@ -393,7 +399,7 @@ WinRecon returns meaningful exit codes for scripting and CI/CD integration:
 
 ```powershell
 # Example: fail a CI pipeline if critical findings exist
-python winrecon.py --quiet --json-only
+python -m winrecon --quiet --json-only
 if ($LASTEXITCODE -eq 2) { Write-Error "Critical security issues found!" }
 ```
 
@@ -401,17 +407,26 @@ if ($LASTEXITCODE -eq 2) { Write-Error "Critical security issues found!" }
 
 ## 🧪 Testing
 
-WinRecon includes a comprehensive test suite with 41 tests covering core logic:
+WinRecon includes a comprehensive test suite with 101 tests covering core logic and integration workflows:
 
 ```bash
-# Run all tests
-python -m pytest test_winrecon.py -v
+# Install dev dependencies
+pip install -e ".[dev]"
 
-# Run with coverage (requires pytest-cov)
-python -m pytest test_winrecon.py --cov=winrecon --cov-report=term-missing
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage (enforced at 80% minimum)
+python -m pytest tests/ --cov=winrecon --cov-report=term-missing --cov-fail-under=80
+
+# Lint
+python -m ruff check winrecon/ tests/
+
+# Type check
+python -m mypy winrecon/ --ignore-missing-imports --check-untyped-defs
 ```
 
-Tests cover: `Finding` class, `calculate_score()`, `_esc()` HTML escaping, `run_command()`, `reg_read()`, `parse_arguments()`, JSON export, HTML report generation (including XSS prevention), custom keyword loading, and exit codes.
+Tests cover: `Finding` class, `calculate_score()`, `_esc()` HTML escaping, `run_command()`, `reg_read()`, `parse_arguments()`, JSON/HTML report generation (including XSS prevention), custom keyword loading, exit codes, all 20 security checks (mocked), full scan integration workflows, and CLI `main()` function.
 
 ---
 

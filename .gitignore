@@ -4,4 +4,11 @@ winrecon_reports/
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
+dist/
+build/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/

@@ -22,16 +22,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install pytest pytest-cov ruff mypy
 
-      - name: Verify syntax
-        run: python -c "import ast; ast.parse(open('winrecon.py', encoding='utf-8').read()); print('Syntax OK')"
+      - name: Lint with ruff
+        run: python -m ruff check winrecon/ tests/
 
-      - name: Run tests
-        run: python -m pytest test_winrecon.py -v --tb=short
+      - name: Run tests with coverage
+        run: python -m pytest tests/ --cov=winrecon --cov-report=term-missing --cov-fail-under=80
 
       - name: Type check (Python 3.10+)
         if: matrix.python-version != '3.8'
-        run: |
-          pip install mypy
-          python -m mypy winrecon.py --ignore-missing-imports --no-error-summary || true
+        run: python -m mypy winrecon/ --ignore-missing-imports --check-untyped-defs
