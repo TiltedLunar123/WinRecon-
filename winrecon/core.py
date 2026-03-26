@@ -145,7 +145,7 @@ class Finding:
 
 def is_admin() -> bool:
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin() != 0  # type: ignore[attr-defined]
+        return bool(ctypes.windll.shell32.IsUserAnAdmin() != 0)  # type: ignore[attr-defined]
     except Exception:
         return False
 

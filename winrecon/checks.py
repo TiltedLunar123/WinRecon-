@@ -47,9 +47,10 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
     try:
         hostname = socket.gethostname()
         addrs = socket.getaddrinfo(hostname, None)
+        raw = [str(addr[4][0]) for addr in addrs]
         ips = sorted(set(
-            addr[4][0] for addr in addrs
-            if not addr[4][0].startswith("::") and addr[4][0] != "127.0.0.1"
+            ip for ip in raw
+            if not ip.startswith("::") and ip != "127.0.0.1"
         ))
         info["ip_addresses"] = ips if ips else ["Could not determine"]
     except Exception:
