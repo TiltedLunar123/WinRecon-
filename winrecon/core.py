@@ -1,15 +1,16 @@
 """Core types, constants, and utility functions for WinRecon."""
 
 import ctypes
+import html as _html_mod
 import logging
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 if sys.platform == "win32":
     import winreg
 
-VERSION = "4.0.0"
+VERSION = "4.1.0"
 TOOL_NAME = "WinRecon"
 AUTHOR = "JUDE HILGENDORF"
 
@@ -78,7 +79,6 @@ DEFAULT_SUSPICIOUS_TASK_KEYWORDS: List[str] = [
     "start-bitstransfer",
     "net.webclient",
     # Evasion techniques
-    "bypass",
     "-noprofile",
     "-noexit",
     "-windowstyle hidden",
@@ -109,10 +109,23 @@ DEFAULT_TRUSTED_TASK_PATHS: List[str] = [
     "\\Lenovo\\",
     "\\Dell\\",
     "\\HP\\",
+    "\\Realtek\\",
+    "\\Samsung\\",
+    "\\AMD\\",
+    "\\Qualcomm\\",
+    "\\Cisco\\",
+    "\\Logitech\\",
+    "\\ASUS\\",
+    "\\Acer\\",
 ]
 
 
+VALID_SEVERITIES = {"CRITICAL", "WARNING", "INFO", "PASS"}
+
+
 class Finding:
+    """Represents a single security finding from a WinRecon check."""
+
     def __init__(
         self,
         check_id: str,
@@ -127,6 +140,10 @@ class Finding:
         self.category = category
         self.title = title
         self.severity = severity.upper()
+        if self.severity not in VALID_SEVERITIES:
+            raise ValueError(
+                f"Invalid severity {self.severity!r}; must be one of {VALID_SEVERITIES}"
+            )
         self.description = description
         self.detail = detail
         self.remediation = remediation
@@ -142,15 +159,26 @@ class Finding:
             "remediation": self.remediation,
         }
 
+    def __repr__(self) -> str:
+        return f"Finding({self.check_id!r}, {self.severity!r}, {self.title!r})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Finding):
+            return NotImplemented
+        return self.to_dict() == other.to_dict()
+
 
 def is_admin() -> bool:
     try:
         return bool(ctypes.windll.shell32.IsUserAnAdmin() != 0)  # type: ignore[attr-defined]
-    except Exception:
+    except Exception as exc:
+        logging.getLogger(TOOL_NAME).debug("Admin check failed: %s", exc)
         return False
 
 
-def run_command(cmd: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+def run_command(cmd: str, timeout: Optional[int] = None) -> str:
+    if timeout is None:
+        timeout = DEFAULT_TIMEOUT
     log = logging.getLogger(TOOL_NAME)
     try:
         cflags = 0
@@ -164,9 +192,11 @@ def run_command(cmd: str, timeout: int = DEFAULT_TIMEOUT) -> str:
             shell=True,
             creationflags=cflags,
         )
+        if result.stderr and result.stderr.strip():
+            log.debug("Command stderr: %s — %s", cmd[:80], result.stderr.strip()[:200])
         return result.stdout.strip()
     except subprocess.TimeoutExpired:
-        log.debug("Command timed out after %ds: %s", timeout, cmd[:80])
+        log.debug("Command timed out after %ds: %s", timeout, cmd)
         return ""
     except Exception as exc:
         log.debug("Command failed: %s — %s", cmd[:80], exc)
@@ -243,9 +273,4 @@ def calculate_score(findings: List[Finding]) -> Dict[str, Any]:
 
 def _esc(text: str) -> str:
     """Escape text for safe HTML embedding."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    return _html_mod.escape(text, quote=True)

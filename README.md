@@ -2,7 +2,7 @@
 
 # 🛡️ WinRecon — Windows Security Auditing & Hardening Toolkit
 
-![Version](https://img.shields.io/badge/version-4.0.0-purple)
+![Version](https://img.shields.io/badge/version-4.1.0-purple)
 ![Python](https://img.shields.io/badge/python-3.8%2B-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-purple)
 ![License](https://img.shields.io/badge/license-MIT-purple)
@@ -141,7 +141,7 @@ usage: WinRecon [-h] [--output-dir OUTPUT_DIR] [--json-only] [--no-html]
                 [--verbose] [--quiet] [--timeout TIMEOUT]
                 [--keywords-file FILE] [--version]
 
-WinRecon v4.0.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
+WinRecon v4.1.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
 
 options:
   -h, --help            show this help message and exit
@@ -351,7 +351,7 @@ WinRecon scans scheduled tasks and startup entries for these known attack indica
 ```
 MIT License
 
-Copyright (c) 2025 JUDE HILGENDORF
+Copyright (c) 2026 JUDE HILGENDORF
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -407,7 +407,7 @@ if ($LASTEXITCODE -eq 2) { Write-Error "Critical security issues found!" }
 
 ## 🧪 Testing
 
-WinRecon includes a comprehensive test suite with 101 tests covering core logic and integration workflows:
+WinRecon includes a comprehensive test suite covering core logic, individual checks, and integration workflows:
 
 ```bash
 # Install dev dependencies

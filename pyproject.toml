@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "winrecon"
-version = "4.0.0"
+version = "4.1.0"
 description = "Windows Security Auditing & Hardening Toolkit"
 readme = "README.md"
 license = "MIT"
@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
     "Topic :: System :: Systems Administration",
     "Typing :: Typed",
@@ -87,3 +88,7 @@ omit = ["tests/*"]
 [tool.coverage.report]
 fail_under = 80
 show_missing = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B603", "B602", "B607"]

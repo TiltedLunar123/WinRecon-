@@ -133,7 +133,7 @@ class TestCalculateScore(unittest.TestCase):
 class TestHtmlEscape(unittest.TestCase):
     def test_basic_escaping(self) -> None:
         self.assertEqual(_esc("<script>alert('xss')</script>"),
-                         "&lt;script&gt;alert('xss')&lt;/script&gt;")
+                         "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
 
     def test_ampersand(self) -> None:
         self.assertEqual(_esc("A & B"), "A &amp; B")

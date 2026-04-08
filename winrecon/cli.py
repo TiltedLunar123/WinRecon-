@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import winrecon.core as _core_mod
 from winrecon.checks import collect_system_info, run_all_checks
 from winrecon.core import (
     AUTHOR,
@@ -27,7 +28,9 @@ from winrecon.core import (
 )
 from winrecon.reporting import export_json, generate_html_report
 
-HOSTNAME = platform.node()
+
+def _get_hostname() -> str:
+    return platform.node()
 
 
 def setup_logging(output_dir: Path, verbose: bool = False, quiet: bool = False) -> logging.Logger:
@@ -147,17 +150,17 @@ def load_custom_keywords(
         return keywords, paths
     except (json.JSONDecodeError, OSError) as exc:
         log.error("Failed to load keywords file '%s': %s", filepath, exc)
-        sys.exit(EXIT_ERROR)
+        raise SystemExit(EXIT_ERROR) from exc
 
 
 def main() -> int:
     if sys.platform != "win32":
         print("[ERROR] WinRecon is designed for Windows systems only.")
-        sys.exit(EXIT_ERROR)
+        return EXIT_ERROR
 
     if sys.version_info < (3, 8):
         print("[ERROR] WinRecon requires Python 3.8 or higher.")
-        sys.exit(EXIT_ERROR)
+        return EXIT_ERROR
 
     args = parse_arguments()
 
@@ -181,6 +184,11 @@ def main() -> int:
             suspicious_keywords = custom_keywords
         if custom_paths is not None:
             trusted_paths = custom_paths
+
+    # Apply user-specified command timeout globally
+    if args.timeout != DEFAULT_TIMEOUT:
+        _core_mod.DEFAULT_TIMEOUT = args.timeout
+        log.info("Command timeout set to %d seconds.", args.timeout)
 
     if not is_admin():
         log.warning("NOT running as Administrator. Some checks will be limited.")
@@ -208,11 +216,12 @@ def main() -> int:
     log.info("  Total findings: %d", score_data["total_findings"])
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    json_path = output_dir / f"winrecon_{HOSTNAME}_{timestamp}.json"
+    hostname = _get_hostname()
+    json_path = output_dir / f"winrecon_{hostname}_{timestamp}.json"
     export_json(system_info, findings, score_data, json_path, log)
 
     if not args.json_only and not args.no_html:
-        html_path = output_dir / f"winrecon_{HOSTNAME}_{timestamp}.html"
+        html_path = output_dir / f"winrecon_{hostname}_{timestamp}.html"
         generate_html_report(system_info, findings, score_data, html_path, log)
 
     log.info("─" * 55)

@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.10", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +21,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: pip install pytest pytest-cov ruff mypy
+      - name: Install package with dev dependencies
+        run: pip install -e ".[dev]"
 
       - name: Lint with ruff
         run: python -m ruff check winrecon/ tests/
@@ -31,5 +31,32 @@ jobs:
         run: python -m pytest tests/ --cov=winrecon --cov-report=term-missing --cov-fail-under=80
 
       - name: Type check (Python 3.10+)
-        if: matrix.python-version != '3.8'
+        if: matrix.python-version != '3.8' && matrix.python-version != '3.9'
         run: python -m mypy winrecon/ --ignore-missing-imports --check-untyped-defs
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: .coverage
+          retention-days: 7
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install security tools
+        run: pip install bandit pip-audit
+
+      - name: Run Bandit security scan
+        run: python -m bandit -r winrecon/ -c pyproject.toml || true
+
+      - name: Audit dependencies
+        run: pip-audit --strict || true

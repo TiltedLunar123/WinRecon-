@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "WinRecon Security Audit Report",
-  "description": "JSON output schema for WinRecon v3.1.0 security audit reports.",
+  "description": "JSON output schema for WinRecon v4.1.0 security audit reports.",
   "type": "object",
   "required": ["tool", "version", "author", "system_info", "score", "findings"],
   "properties": {

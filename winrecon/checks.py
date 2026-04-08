@@ -10,7 +10,7 @@ import os
 import platform
 import socket
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Set
 
 if sys.platform == "win32":
     import winreg
@@ -26,13 +26,15 @@ from winrecon.core import (
     run_command,
 )
 
-HOSTNAME = platform.node()
+
+def _get_hostname() -> str:
+    return platform.node()
 
 
 def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
     log.info("Collecting system information...")
     info: Dict[str, Any] = {
-        "hostname": HOSTNAME,
+        "hostname": _get_hostname(),
         "os": platform.platform(),
         "os_version": platform.version(),
         "architecture": platform.machine(),
@@ -127,7 +129,7 @@ def check_local_users(log: logging.Logger) -> List[Finding]:
 
     if user_count > 0:
         findings.append(Finding(
-            "USR-001", "User Accounts",
+            "USR-006", "User Accounts",
             f"Enumerated {user_count} local user account(s)",
             "INFO",
             f"Total local accounts found: {user_count}.",
@@ -297,7 +299,7 @@ def check_open_ports(log: logging.Logger) -> List[Finding]:
                 "label": RISKY_PORTS.get(port, ""),
             })
 
-    seen_ports: set[int] = set()
+    seen_ports: Set[int] = set()
     unique_listening: List[Dict[str, Any]] = []
     for entry in listening:
         if entry["port"] not in seen_ports:
@@ -305,7 +307,7 @@ def check_open_ports(log: logging.Logger) -> List[Finding]:
             unique_listening.append(entry)
 
     findings.append(Finding(
-        "NET-001", "Network",
+        "NET-002", "Network",
         f"Found {len(unique_listening)} unique listening TCP port(s)",
         "INFO",
         "Listening ports represent the system's attack surface.",
@@ -652,8 +654,8 @@ def check_antivirus(log: logging.Logger) -> List[Finding]:
 
 def check_scheduled_tasks(
     log: logging.Logger,
-    suspicious_keywords: List[str] = None,  # type: ignore[assignment]
-    trusted_paths: List[str] = None,  # type: ignore[assignment]
+    suspicious_keywords: Optional[List[str]] = None,
+    trusted_paths: Optional[List[str]] = None,
 ) -> List[Finding]:
     log.info("Checking scheduled tasks for suspicious entries...")
     if suspicious_keywords is None:
@@ -1153,7 +1155,7 @@ def check_installed_software(log: logging.Logger) -> List[Finding]:
         except (FileNotFoundError, OSError):
             continue
 
-    seen: set[str] = set()
+    seen: Set[str] = set()
     unique: List[Dict[str, str]] = []
     for sw in software:
         k = sw["name"].lower()
@@ -1176,8 +1178,8 @@ def check_installed_software(log: logging.Logger) -> List[Finding]:
 
 def run_all_checks(
     log: logging.Logger,
-    suspicious_keywords: List[str] = None,  # type: ignore[assignment]
-    trusted_paths: List[str] = None,  # type: ignore[assignment]
+    suspicious_keywords: Optional[List[str]] = None,
+    trusted_paths: Optional[List[str]] = None,
 ) -> List[Finding]:
     if suspicious_keywords is None:
         suspicious_keywords = DEFAULT_SUSPICIOUS_TASK_KEYWORDS
