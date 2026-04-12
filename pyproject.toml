@@ -7,7 +7,7 @@ name = "winrecon"
 version = "4.1.0"
 description = "Windows Security Auditing & Hardening Toolkit"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [
     { name = "Jude Hilgendorf" },
