@@ -259,10 +259,140 @@ class TestRunAllChecksErrorHandling(unittest.TestCase):
 
 class TestHostnameAtScanTime(unittest.TestCase):
     def test_get_hostname_callable(self) -> None:
-        from winrecon.checks import _get_hostname
+        from winrecon.core import _get_hostname
         result = _get_hostname()
         self.assertIsInstance(result, str)
         self.assertTrue(len(result) > 0)
+
+    def test_hostname_shared_between_modules(self) -> None:
+        from winrecon.checks import _get_hostname as checks_hostname
+        from winrecon.core import _get_hostname as core_hostname
+        self.assertIs(checks_hostname, core_hostname)
+
+
+class TestFindingHash(unittest.TestCase):
+    def test_hashable(self) -> None:
+        f = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        h = hash(f)
+        self.assertIsInstance(h, int)
+
+    def test_equal_findings_same_hash(self) -> None:
+        f1 = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        f2 = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        self.assertEqual(hash(f1), hash(f2))
+
+    def test_usable_in_set(self) -> None:
+        f1 = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        f2 = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        f3 = Finding("T-002", "Test", "Other", "WARNING", "Different")
+        s = {f1, f2, f3}
+        self.assertEqual(len(s), 2)
+
+    def test_different_findings_different_hash(self) -> None:
+        f1 = Finding("T-001", "Test", "Title", "INFO", "Desc")
+        f2 = Finding("T-002", "Test", "Title", "INFO", "Desc")
+        self.assertNotEqual(hash(f1), hash(f2))
+
+
+class TestAdmCheckIdUnique(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_admin_check_ids_distinct(self, mock_cmd: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_cmd.return_value = (
+            "Alias name     Administrators\n"
+            "Comment        ...\n\n"
+            "---\n"
+            "Administrator\n"
+            "JohnDoe\n"
+            "The command completed successfully.\n"
+        )
+        log = MagicMock()
+        findings = check_local_admins(log)
+        ids = [f.check_id for f in findings]
+        self.assertIn("ADM-002", ids)
+        self.assertNotIn("ADM-001", ids)
+
+    @patch("winrecon.checks.run_command")
+    def test_admin_failure_uses_adm001(self, mock_cmd: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_cmd.return_value = ""
+        log = MagicMock()
+        findings = check_local_admins(log)
+        ids = [f.check_id for f in findings]
+        self.assertIn("ADM-001", ids)
+
+
+class TestTimeoutValidation(unittest.TestCase):
+    def test_negative_timeout_rejected(self) -> None:
+        from winrecon.cli import parse_arguments
+        with patch("sys.argv", ["winrecon", "--timeout", "-5"]), self.assertRaises(SystemExit):
+            parse_arguments()
+
+    def test_zero_timeout_rejected(self) -> None:
+        from winrecon.cli import parse_arguments
+        with patch("sys.argv", ["winrecon", "--timeout", "0"]), self.assertRaises(SystemExit):
+            parse_arguments()
+
+    def test_positive_timeout_accepted(self) -> None:
+        from winrecon.cli import parse_arguments
+        with patch("sys.argv", ["winrecon", "--timeout", "30"]):
+            args = parse_arguments()
+            self.assertEqual(args.timeout, 30)
+
+
+class TestIpFiltering(unittest.TestCase):
+    @patch("winrecon.checks.socket")
+    @patch("winrecon.checks.is_admin", return_value=False)
+    def test_filters_link_local_and_apipa(self, _admin: MagicMock, mock_socket: MagicMock) -> None:
+        from winrecon.checks import collect_system_info
+        mock_socket.gethostname.return_value = "testhost"
+        mock_socket.getaddrinfo.return_value = [
+            (0, 0, 0, "", ("192.168.1.10", 0)),
+            (0, 0, 0, "", ("127.0.0.1", 0)),
+            (0, 0, 0, "", ("fe80::1", 0)),
+            (0, 0, 0, "", ("169.254.100.5", 0)),
+            (0, 0, 0, "", ("::1", 0)),
+            (0, 0, 0, "", ("10.0.0.1", 0)),
+        ]
+        log = MagicMock()
+        info = collect_system_info(log)
+        self.assertIn("192.168.1.10", info["ip_addresses"])
+        self.assertIn("10.0.0.1", info["ip_addresses"])
+        self.assertNotIn("127.0.0.1", info["ip_addresses"])
+        self.assertNotIn("fe80::1", info["ip_addresses"])
+        self.assertNotIn("169.254.100.5", info["ip_addresses"])
+        self.assertNotIn("::1", info["ip_addresses"])
+
+
+class TestPasswordPolicyThreshold(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_length_12_still_warns(self, mock_cmd: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_cmd.return_value = (
+            "Minimum password length: 12\n"
+            "Lockout threshold: 5\n"
+            "Length of password history maintained: 24\n"
+        )
+        log = MagicMock()
+        findings = check_password_policy(log)
+        pwd_findings = [f for f in findings if f.check_id == "PWD-002"]
+        self.assertEqual(len(pwd_findings), 1)
+        self.assertEqual(pwd_findings[0].severity, "WARNING")
+        self.assertIn("14", pwd_findings[0].title)
+
+    @patch("winrecon.checks.run_command")
+    def test_length_14_passes(self, mock_cmd: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_cmd.return_value = (
+            "Minimum password length: 14\n"
+            "Lockout threshold: 5\n"
+            "Length of password history maintained: 24\n"
+        )
+        log = MagicMock()
+        findings = check_password_policy(log)
+        pwd_findings = [f for f in findings if f.check_id == "PWD-002"]
+        self.assertEqual(len(pwd_findings), 1)
+        self.assertEqual(pwd_findings[0].severity, "PASS")
 
 
 if __name__ == "__main__":

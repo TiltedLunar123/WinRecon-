@@ -5,7 +5,6 @@ import datetime
 import json
 import logging
 import os
-import platform
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -23,14 +22,11 @@ from winrecon.core import (
     EXIT_WARNING,
     TOOL_NAME,
     VERSION,
+    _get_hostname,
     calculate_score,
     is_admin,
 )
 from winrecon.reporting import export_json, generate_html_report
-
-
-def _get_hostname() -> str:
-    return platform.node()
 
 
 def setup_logging(output_dir: Path, verbose: bool = False, quiet: bool = False) -> logging.Logger:
@@ -94,9 +90,15 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Suppress all console output (log file is still written).",
     )
+    def _positive_int(value: str) -> int:
+        ival = int(value)
+        if ival <= 0:
+            raise argparse.ArgumentTypeError(f"timeout must be a positive integer, got {ival}")
+        return ival
+
     parser.add_argument(
         "--timeout", "-t",
-        type=int,
+        type=_positive_int,
         default=DEFAULT_TIMEOUT,
         help=f"Timeout in seconds for each system command (default: {DEFAULT_TIMEOUT}).",
     )

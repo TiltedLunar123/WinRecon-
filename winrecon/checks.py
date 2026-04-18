@@ -20,15 +20,12 @@ from winrecon.core import (
     DEFAULT_TRUSTED_TASK_PATHS,
     RISKY_PORTS,
     Finding,
+    _get_hostname,
     is_admin,
     reg_enum_values,
     reg_read,
     run_command,
 )
-
-
-def _get_hostname() -> str:
-    return platform.node()
 
 
 def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
@@ -52,7 +49,10 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
         raw = [str(addr[4][0]) for addr in addrs]
         ips = sorted(set(
             ip for ip in raw
-            if not ip.startswith("::") and ip != "127.0.0.1"
+            if ip != "127.0.0.1"
+            and not ip.startswith("::")
+            and not ip.startswith("fe80:")
+            and not ip.startswith("169.254.")
         ))
         info["ip_addresses"] = ips if ips else ["Could not determine"]
     except Exception:
@@ -164,7 +164,7 @@ def check_local_admins(log: logging.Logger) -> List[Finding]:
 
     severity = "CRITICAL" if len(members) > 3 else ("WARNING" if len(members) > 2 else "PASS")
     findings.append(Finding(
-        "ADM-001", "Admin Accounts",
+        "ADM-002", "Admin Accounts",
         f"Local Administrators group has {len(members)} member(s)",
         severity,
         "Excessive local admin accounts increase lateral movement risk.",
@@ -209,10 +209,10 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
             detail=detail_text,
             remediation="Set minimum password length to 12+: net accounts /minpwlen:12"
         ))
-    elif min_len < 12:
+    elif min_len < 14:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} (recommended >= 12)",
+            f"Minimum password length is {min_len} (CIS recommends >= 14)",
             "WARNING",
             "CIS benchmarks recommend a minimum of 14 characters.",
             detail=detail_text,
