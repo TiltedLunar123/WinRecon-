@@ -645,9 +645,18 @@ def check_antivirus(log: logging.Logger) -> List[Finding]:
     elif sig_age >= 0:
         findings.append(Finding(
             "AV-003", "Antivirus",
-            f"Antivirus signatures are {sig_age} day(s) old — current",
+            f"Antivirus signatures are {sig_age} day(s) old (current)",
             "PASS",
             "Signatures are up to date.",
+        ))
+    else:
+        findings.append(Finding(
+            "AV-003", "Antivirus",
+            "Antivirus signature age could not be parsed",
+            "WARNING",
+            "Get-MpComputerStatus returned a non-numeric SigAge value, so freshness cannot be verified.",
+            detail=f"Raw SigAge value: {sig_age_str!r}",
+            remediation="Run as Administrator and confirm Defender is healthy: Get-MpComputerStatus | Format-List"
         ))
     return findings
 

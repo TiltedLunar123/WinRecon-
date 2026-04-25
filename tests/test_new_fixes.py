@@ -114,6 +114,40 @@ class TestAdminCheckIds(unittest.TestCase):
         self.assertEqual(result[0].check_id, "ADM-001")
 
 
+class TestAntivirusSigAge(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_unparseable_sig_age_emits_warning(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:Unknown\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "WARNING")
+        self.assertIn("could not be parsed", av003[0].title)
+        self.assertIn("Unknown", av003[0].detail)
+
+    @patch("winrecon.checks.run_command")
+    def test_empty_sig_age_emits_warning(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "WARNING")
+
+    @patch("winrecon.checks.run_command")
+    def test_current_sig_age_still_passes(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:2\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "PASS")
+
+
 class TestPasswordPolicyMessaging(unittest.TestCase):
     @patch("winrecon.checks.run_command")
     def test_short_password_recommends_14(self, mock_run: MagicMock) -> None:
