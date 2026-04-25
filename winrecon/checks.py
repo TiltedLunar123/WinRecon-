@@ -164,7 +164,7 @@ def check_local_admins(log: logging.Logger) -> List[Finding]:
 
     severity = "CRITICAL" if len(members) > 3 else ("WARNING" if len(members) > 2 else "PASS")
     findings.append(Finding(
-        "ADM-001", "Admin Accounts",
+        "ADM-002", "Admin Accounts",
         f"Local Administrators group has {len(members)} member(s)",
         severity,
         "Excessive local admin accounts increase lateral movement risk.",
@@ -203,16 +203,16 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
     if min_len < 8:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} (should be >= 12)",
+            f"Minimum password length is {min_len} (should be >= 14)",
             "CRITICAL" if min_len < 6 else "WARNING",
-            "Short passwords are easily brute-forced.",
+            "Short passwords are easily brute-forced. CIS benchmarks recommend a minimum of 14 characters.",
             detail=detail_text,
-            remediation="Set minimum password length to 12+: net accounts /minpwlen:12"
+            remediation="Set minimum password length to 14: net accounts /minpwlen:14"
         ))
-    elif min_len < 12:
+    elif min_len < 14:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} (recommended >= 12)",
+            f"Minimum password length is {min_len} (recommended >= 14)",
             "WARNING",
             "CIS benchmarks recommend a minimum of 14 characters.",
             detail=detail_text,
@@ -221,7 +221,7 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
     else:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} — meets baseline",
+            f"Minimum password length is {min_len} (meets baseline)",
             "PASS",
             "Password length meets or exceeds CIS recommendations.",
             detail=detail_text,

@@ -85,6 +85,66 @@ class TestFindingHash(unittest.TestCase):
         self.assertEqual(len(deduped), 2)
 
 
+class TestAdminCheckIds(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_success_case_uses_adm_002(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_run.return_value = (
+            "Alias name     Administrators\n"
+            "Comment\n"
+            "Members\n"
+            "-------\n"
+            "Administrator\n"
+            "Jude\n"
+            "The command completed successfully.\n"
+        )
+        log = MagicMock()
+        result = check_local_admins(log)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].check_id, "ADM-002")
+        self.assertIn("2 member", result[0].title)
+
+    @patch("winrecon.checks.run_command")
+    def test_failure_case_keeps_adm_001(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_run.return_value = ""
+        log = MagicMock()
+        result = check_local_admins(log)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].check_id, "ADM-001")
+
+
+class TestPasswordPolicyMessaging(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_short_password_recommends_14(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 8\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertIn(">= 14", pwd002.title)
+        self.assertNotIn(">= 12", pwd002.title)
+
+    @patch("winrecon.checks.run_command")
+    def test_borderline_length_12_still_flagged(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 12\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertEqual(pwd002.severity, "WARNING")
+        self.assertIn(">= 14", pwd002.title)
+
+    @patch("winrecon.checks.run_command")
+    def test_compliant_length_14_passes(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 14\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertEqual(pwd002.severity, "PASS")
+
+
 class TestEscSingleQuotes(unittest.TestCase):
     def test_single_quotes_escaped(self) -> None:
         result = _esc("it's a test")
