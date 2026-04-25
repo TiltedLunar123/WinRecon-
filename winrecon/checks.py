@@ -38,9 +38,7 @@ def _is_uninteresting_ip(ip: str) -> bool:
         return True
     if ip.startswith("169.254."):
         return True
-    if ip.lower().startswith("fe80:"):
-        return True
-    return False
+    return bool(ip.lower().startswith("fe80:"))
 
 
 def collect_system_info(log: logging.Logger) -> Dict[str, Any]:

@@ -88,6 +88,7 @@ class TestFindingHash(unittest.TestCase):
 class TestSystemInfoScanTime(unittest.TestCase):
     def test_scan_time_is_rfc3339_with_offset(self) -> None:
         import datetime as _dt
+
         from winrecon.checks import collect_system_info
         log = MagicMock()
         with patch("winrecon.checks.run_command", return_value=""):
@@ -133,15 +134,14 @@ class TestPartialReportFailureLogging(unittest.TestCase):
     def test_html_failure_logs_partial(self) -> None:
         from winrecon import cli as cli_mod
         log = MagicMock()
-        with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(cli_mod, "export_json"), \
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
                  patch.object(cli_mod, "generate_html_report",
-                              side_effect=OSError("disk full")):
-                saved, failed = cli_mod.write_reports(
-                    {}, [], self.SCORE,
-                    Path(tmp), "host", "2026-01-01_00-00-00",
-                    json_only=False, no_html=False, log=log,
-                )
+                          side_effect=OSError("disk full")):
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
         self.assertEqual(len(saved), 1)
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed[0][0], "HTML")
@@ -153,14 +153,13 @@ class TestPartialReportFailureLogging(unittest.TestCase):
     def test_both_succeed_logs_saved(self) -> None:
         from winrecon import cli as cli_mod
         log = MagicMock()
-        with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(cli_mod, "export_json"), \
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
                  patch.object(cli_mod, "generate_html_report"):
-                saved, failed = cli_mod.write_reports(
-                    {}, [], self.SCORE,
-                    Path(tmp), "host", "2026-01-01_00-00-00",
-                    json_only=False, no_html=False, log=log,
-                )
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
         self.assertEqual(len(saved), 2)
         self.assertEqual(failed, [])
         self.assertTrue(any("Reports saved to" in str(c)
@@ -169,16 +168,15 @@ class TestPartialReportFailureLogging(unittest.TestCase):
     def test_json_failure_logs_total_failure(self) -> None:
         from winrecon import cli as cli_mod
         log = MagicMock()
-        with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(cli_mod, "export_json",
-                              side_effect=OSError("permission denied")), \
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json",
+                          side_effect=OSError("permission denied")), \
                  patch.object(cli_mod, "generate_html_report",
-                              side_effect=OSError("permission denied")):
-                saved, failed = cli_mod.write_reports(
-                    {}, [], self.SCORE,
-                    Path(tmp), "host", "2026-01-01_00-00-00",
-                    json_only=False, no_html=False, log=log,
-                )
+                          side_effect=OSError("permission denied")):
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
         self.assertEqual(saved, [])
         self.assertEqual(len(failed), 2)
         self.assertTrue(any("No reports were written" in str(c)
@@ -187,14 +185,13 @@ class TestPartialReportFailureLogging(unittest.TestCase):
     def test_json_only_skips_html(self) -> None:
         from winrecon import cli as cli_mod
         log = MagicMock()
-        with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(cli_mod, "export_json"), \
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
                  patch.object(cli_mod, "generate_html_report") as mock_html:
-                saved, failed = cli_mod.write_reports(
-                    {}, [], self.SCORE,
-                    Path(tmp), "host", "2026-01-01_00-00-00",
-                    json_only=True, no_html=False, log=log,
-                )
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=True, no_html=False, log=log,
+            )
         self.assertEqual(len(saved), 1)
         mock_html.assert_not_called()
 
