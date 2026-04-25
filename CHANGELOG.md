@@ -2,6 +2,20 @@
 
 All notable changes to WinRecon are documented here.
 
+## [Unreleased]
+
+### Fixed
+- `Finding` class is now hashable; equal findings hash equal so they can be deduplicated via `set` (closes #13)
+- `check_local_admins` now uses `ADM-002` for the member-count finding so the success and failure cases no longer share `ADM-001` (closes #4)
+- Password policy `PWD-002` messaging is consistent: title and description both reference 14 characters (CIS) instead of mixing 12 and 14 (closes #5)
+- Defender `SigAge` parse failures now emit a `WARNING` instead of being silently dropped (closes #19)
+- Report writes are wrapped per-file: the "Reports saved" line only appears when each requested report actually lands; partial and total failures are reported separately (closes #22)
+- `system_info.scan_time` is now an RFC 3339 timestamp with UTC offset, matching the JSON schema declaration (closes #16)
+- IPv6 link-local (`fe80:`) and IPv4 APIPA (`169.254.`) addresses are now excluded from `system_info.ip_addresses` (closes #12)
+
+### Changed
+- Extracted `winrecon.cli.write_reports` so the per-file try/except logic is independently testable
+
 ## [4.1.0] - 2026-04-08
 
 ### Fixed
