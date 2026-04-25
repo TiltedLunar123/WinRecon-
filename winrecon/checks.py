@@ -31,6 +31,18 @@ def _get_hostname() -> str:
     return platform.node()
 
 
+def _is_uninteresting_ip(ip: str) -> bool:
+    if not ip:
+        return True
+    if ip == "127.0.0.1" or ip.startswith("::"):
+        return True
+    if ip.startswith("169.254."):
+        return True
+    if ip.lower().startswith("fe80:"):
+        return True
+    return False
+
+
 def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
     log.info("Collecting system information...")
     info: Dict[str, Any] = {
@@ -42,7 +54,7 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
         "current_user": getpass.getuser(),
         "is_admin": is_admin(),
         "python_version": platform.python_version(),
-        "scan_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "scan_time": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         "domain": os.environ.get("USERDOMAIN", "N/A"),
         "ip_addresses": [],
     }
@@ -52,7 +64,7 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
         raw = [str(addr[4][0]) for addr in addrs]
         ips = sorted(set(
             ip for ip in raw
-            if not ip.startswith("::") and ip != "127.0.0.1"
+            if not _is_uninteresting_ip(ip)
         ))
         info["ip_addresses"] = ips if ips else ["Could not determine"]
     except Exception:

@@ -85,6 +85,45 @@ class TestFindingHash(unittest.TestCase):
         self.assertEqual(len(deduped), 2)
 
 
+class TestSystemInfoScanTime(unittest.TestCase):
+    def test_scan_time_is_rfc3339_with_offset(self) -> None:
+        import datetime as _dt
+        from winrecon.checks import collect_system_info
+        log = MagicMock()
+        with patch("winrecon.checks.run_command", return_value=""):
+            info = collect_system_info(log)
+        scan_time = info["scan_time"]
+        parsed = _dt.datetime.fromisoformat(scan_time)
+        self.assertIsNotNone(parsed.tzinfo)
+        self.assertEqual(parsed.utcoffset(), _dt.timedelta(0))
+
+
+class TestUninterestingIpFilter(unittest.TestCase):
+    def test_loopback_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("127.0.0.1"))
+
+    def test_ipv6_loopback_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("::1"))
+
+    def test_apipa_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("169.254.1.5"))
+
+    def test_link_local_v6_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("fe80::1234:5678"))
+        self.assertTrue(_is_uninteresting_ip("FE80::abcd"))
+
+    def test_real_addresses_kept(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertFalse(_is_uninteresting_ip("10.0.0.5"))
+        self.assertFalse(_is_uninteresting_ip("192.168.1.10"))
+        self.assertFalse(_is_uninteresting_ip("8.8.8.8"))
+        self.assertFalse(_is_uninteresting_ip("2001:db8::1"))
+
+
 class TestPartialReportFailureLogging(unittest.TestCase):
     SCORE = {
         "score": 100, "grade": "A", "critical": 0, "warning": 0,
