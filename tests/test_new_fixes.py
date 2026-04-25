@@ -85,6 +85,81 @@ class TestFindingHash(unittest.TestCase):
         self.assertEqual(len(deduped), 2)
 
 
+class TestPartialReportFailureLogging(unittest.TestCase):
+    SCORE = {
+        "score": 100, "grade": "A", "critical": 0, "warning": 0,
+        "pass": 0, "info": 0, "total_findings": 0,
+    }
+
+    def test_html_failure_logs_partial(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report",
+                              side_effect=OSError("disk full")):
+                saved, failed = cli_mod.write_reports(
+                    {}, [], self.SCORE,
+                    Path(tmp), "host", "2026-01-01_00-00-00",
+                    json_only=False, no_html=False, log=log,
+                )
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0][0], "HTML")
+        self.assertTrue(any("Partial success" in str(c)
+                            for c in log.warning.call_args_list))
+        self.assertTrue(any("HTML" in str(c)
+                            for c in log.error.call_args_list))
+
+    def test_both_succeed_logs_saved(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report"):
+                saved, failed = cli_mod.write_reports(
+                    {}, [], self.SCORE,
+                    Path(tmp), "host", "2026-01-01_00-00-00",
+                    json_only=False, no_html=False, log=log,
+                )
+        self.assertEqual(len(saved), 2)
+        self.assertEqual(failed, [])
+        self.assertTrue(any("Reports saved to" in str(c)
+                            for c in log.info.call_args_list))
+
+    def test_json_failure_logs_total_failure(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(cli_mod, "export_json",
+                              side_effect=OSError("permission denied")), \
+                 patch.object(cli_mod, "generate_html_report",
+                              side_effect=OSError("permission denied")):
+                saved, failed = cli_mod.write_reports(
+                    {}, [], self.SCORE,
+                    Path(tmp), "host", "2026-01-01_00-00-00",
+                    json_only=False, no_html=False, log=log,
+                )
+        self.assertEqual(saved, [])
+        self.assertEqual(len(failed), 2)
+        self.assertTrue(any("No reports were written" in str(c)
+                            for c in log.error.call_args_list))
+
+    def test_json_only_skips_html(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report") as mock_html:
+                saved, failed = cli_mod.write_reports(
+                    {}, [], self.SCORE,
+                    Path(tmp), "host", "2026-01-01_00-00-00",
+                    json_only=True, no_html=False, log=log,
+                )
+        self.assertEqual(len(saved), 1)
+        mock_html.assert_not_called()
+
+
 class TestAdminCheckIds(unittest.TestCase):
     @patch("winrecon.checks.run_command")
     def test_success_case_uses_adm_002(self, mock_run: MagicMock) -> None:

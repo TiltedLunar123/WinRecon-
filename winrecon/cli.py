@@ -153,6 +153,52 @@ def load_custom_keywords(
         raise SystemExit(EXIT_ERROR) from exc
 
 
+def write_reports(
+    system_info: dict,
+    findings: list,
+    score_data: dict,
+    output_dir: Path,
+    hostname: str,
+    timestamp: str,
+    json_only: bool,
+    no_html: bool,
+    log: logging.Logger,
+) -> Tuple[List[Path], List[Tuple[str, str]]]:
+    saved_paths: List[Path] = []
+    failed_writes: List[Tuple[str, str]] = []
+
+    json_path = output_dir / f"winrecon_{hostname}_{timestamp}.json"
+    try:
+        export_json(system_info, findings, score_data, json_path, log)
+        saved_paths.append(json_path)
+    except OSError as exc:
+        failed_writes.append(("JSON", str(exc)))
+        log.error("Failed to write JSON report %s: %s", json_path, exc)
+
+    if not json_only and not no_html:
+        html_path = output_dir / f"winrecon_{hostname}_{timestamp}.html"
+        try:
+            generate_html_report(system_info, findings, score_data, html_path, log)
+            saved_paths.append(html_path)
+        except OSError as exc:
+            failed_writes.append(("HTML", str(exc)))
+            log.error("Failed to write HTML report %s: %s", html_path, exc)
+
+    log.info("-" * 55)
+    if saved_paths and not failed_writes:
+        log.info("Reports saved to: %s", output_dir.resolve())
+    elif saved_paths and failed_writes:
+        log.warning(
+            "Partial success: wrote %d report(s) to %s; %d failed (%s)",
+            len(saved_paths), output_dir.resolve(),
+            len(failed_writes), ", ".join(name for name, _ in failed_writes),
+        )
+    else:
+        log.error("No reports were written to %s", output_dir.resolve())
+    log.info("Done.")
+    return saved_paths, failed_writes
+
+
 def main() -> int:
     if sys.platform != "win32":
         print("[ERROR] WinRecon is designed for Windows systems only.")
@@ -217,16 +263,12 @@ def main() -> int:
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     hostname = _get_hostname()
-    json_path = output_dir / f"winrecon_{hostname}_{timestamp}.json"
-    export_json(system_info, findings, score_data, json_path, log)
-
-    if not args.json_only and not args.no_html:
-        html_path = output_dir / f"winrecon_{hostname}_{timestamp}.html"
-        generate_html_report(system_info, findings, score_data, html_path, log)
-
-    log.info("─" * 55)
-    log.info("Reports saved to: %s", output_dir.resolve())
-    log.info("Done.")
+    write_reports(
+        system_info, findings, score_data,
+        output_dir, hostname, timestamp,
+        json_only=args.json_only, no_html=args.no_html,
+        log=log,
+    )
 
     if not args.quiet:
         print(f"\n{'═' * 55}")
