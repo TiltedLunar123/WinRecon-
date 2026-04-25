@@ -67,6 +67,24 @@ class TestFindingReprAndEq(unittest.TestCase):
         self.assertNotEqual(f, "not a finding")
 
 
+class TestFindingHash(unittest.TestCase):
+    def test_finding_is_hashable(self) -> None:
+        f = Finding("T-001", "C", "Title", "PASS", "D")
+        hash(f)
+
+    def test_equal_findings_have_equal_hashes(self) -> None:
+        f1 = Finding("T-001", "C", "Title", "PASS", "D", detail="x", remediation="y")
+        f2 = Finding("T-001", "C", "Title", "PASS", "D", detail="x", remediation="y")
+        self.assertEqual(hash(f1), hash(f2))
+
+    def test_findings_usable_in_set(self) -> None:
+        f1 = Finding("T-001", "C", "Title", "PASS", "D")
+        f2 = Finding("T-001", "C", "Title", "PASS", "D")
+        f3 = Finding("T-002", "C", "Different", "PASS", "D")
+        deduped = {f1, f2, f3}
+        self.assertEqual(len(deduped), 2)
+
+
 class TestEscSingleQuotes(unittest.TestCase):
     def test_single_quotes_escaped(self) -> None:
         result = _esc("it's a test")
