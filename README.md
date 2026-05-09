@@ -1,6 +1,6 @@
 ﻿
 
-# 🛡️ WinRecon — Windows Security Auditing & Hardening Toolkit
+# 🛡️ WinRecon - Windows Security Auditing & Hardening Toolkit
 
 ![Version](https://img.shields.io/badge/version-4.1.0-purple)
 ![Python](https://img.shields.io/badge/python-3.8%2B-purple)
@@ -18,19 +18,19 @@ Built entirely on the Python standard library. No installs. No pip. No internet 
 
 The generated HTML report features:
 
-- **Deep purple dark theme** — easy on the eyes, professional presentation
-- **Security score dashboard** — letter grade (A–F) with 0–100 numeric score
-- **Color-coded severity badges** — CRITICAL (red), WARNING (amber), PASS (green), INFO (purple)
-- **Expandable finding details** — technical evidence, registry values, command output
-- **Remediation guidance** — actionable fix commands for every issue found
-- **100% inline HTML** — single self-contained file, no external CSS/JS/fonts, opens instantly in any browser
+- **Deep purple dark theme** - easy on the eyes, professional presentation
+- **Security score dashboard** - letter grade (A–F) with 0–100 numeric score
+- **Color-coded severity badges** - CRITICAL (red), WARNING (amber), PASS (green), INFO (purple)
+- **Expandable finding details** - technical evidence, registry values, command output
+- **Remediation guidance** - actionable fix commands for every issue found
+- **100% inline HTML** - single self-contained file, no external CSS/JS/fonts, opens instantly in any browser
 
 ---
 
 ## ⚡ Quick Start
 
 ```bash
-# Install (optional — or just run directly)
+# Install (optional - or just run directly)
 pip install .
 
 # Basic scan (creates ./winrecon_reports/ with HTML + JSON)
@@ -91,17 +91,17 @@ WinRecon calculates a **security score from 0 to 100** based on findings:
 | **CRITICAL** | -20 points | Immediate security risk requiring urgent remediation |
 | **WARNING** | -10 points | Security weakness that should be addressed |
 | **INFO** | 0 points | Informational finding for awareness |
-| **PASS** | 0 points | Check passed — meets security baseline |
+| **PASS** | 0 points | Check passed - meets security baseline |
 
 ### Grade Scale
 
 | Score | Grade | Meaning |
 |-------|-------|---------|
 | 90–100 | **A** | Excellent security posture |
-| 80–89 | **B** | Good — minor improvements recommended |
-| 60–79 | **C** | Fair — several issues need attention |
-| 40–59 | **D** | Poor — significant security gaps |
-| 0–39 | **F** | Critical — system is at serious risk |
+| 80–89 | **B** | Good - minor improvements recommended |
+| 60–79 | **C** | Fair - several issues need attention |
+| 40–59 | **D** | Poor - significant security gaps |
+| 0–39 | **F** | Critical - system is at serious risk |
 
 ---
 
@@ -118,7 +118,7 @@ winrecon_reports/
 
 ### HTML Report
 - Single self-contained file with **all styles inline**
-- No external dependencies — works offline, opens in any browser instantly
+- No external dependencies - works offline, opens in any browser instantly
 - Purple dark theme with color-coded severity badges
 - Includes system info, score dashboard, and all findings with remediation steps
 
@@ -141,7 +141,7 @@ usage: WinRecon [-h] [--output-dir OUTPUT_DIR] [--json-only] [--no-html]
                 [--verbose] [--quiet] [--timeout TIMEOUT]
                 [--keywords-file FILE] [--version]
 
-WinRecon v4.1.0 by JUDE HILGENDORF — Windows Security Auditing & Hardening Toolkit
+WinRecon v4.1.0 by JUDE HILGENDORF - Windows Security Auditing & Hardening Toolkit
 
 options:
   -h, --help            show this help message and exit
@@ -163,7 +163,7 @@ options:
 |-------------|---------|
 | **Operating System** | Windows 10 / 11 / Server 2016+ |
 | **Python** | 3.8 or higher |
-| **Dependencies** | None — standard library only |
+| **Dependencies** | None - standard library only |
 | **Privileges** | Administrator recommended (works with limited results as standard user) |
 
 ### What Requires Admin?
@@ -224,7 +224,7 @@ $results.findings | Where-Object { $_.severity -eq "CRITICAL" }
 
 ### Quiet Mode for Scheduled Tasks
 ```powershell
-# Silent scan — output only goes to log file
+# Silent scan - output only goes to log file
 python -m winrecon --quiet --output-dir "C:\Audits"
 ```
 
