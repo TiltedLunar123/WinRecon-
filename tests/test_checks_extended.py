@@ -16,6 +16,7 @@ from winrecon.checks import (
     check_installed_software,
     check_local_admins,
     check_network_shares,
+    check_password_policy,
     check_powershell_settings,
     check_rdp,
     check_scheduled_tasks,
@@ -428,6 +429,18 @@ class TestCheckLocalAdmins(unittest.TestCase):
         # The real result must not collide with the query-failure id.
         self.assertEqual(findings[0].check_id, "ADM-002")
         self.assertNotEqual(findings[0].check_id, "ADM-001")
+
+
+class TestCheckPasswordPolicy(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_midrange_length_wording_is_consistent(self, mock_cmd: MagicMock) -> None:
+        # 10 lands in the 8..11 band, which references the CIS 14 baseline.
+        mock_cmd.return_value = "Minimum password length: 10"
+        findings = check_password_policy(MagicMock())
+        pwd = next(f for f in findings if f.check_id == "PWD-002")
+        self.assertIn("14", pwd.title)
+        self.assertNotIn("12", pwd.title)
+        self.assertIn("14", pwd.description)
 
 
 if __name__ == "__main__":

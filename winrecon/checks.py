@@ -212,7 +212,7 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
     elif min_len < 12:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} (recommended >= 12)",
+            f"Minimum password length is {min_len} (recommended >= 14)",
             "WARNING",
             "CIS benchmarks recommend a minimum of 14 characters.",
             detail=detail_text,
