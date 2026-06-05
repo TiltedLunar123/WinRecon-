@@ -42,7 +42,7 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
         "current_user": getpass.getuser(),
         "is_admin": is_admin(),
         "python_version": platform.python_version(),
-        "scan_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "scan_time": datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z"),
         "domain": os.environ.get("USERDOMAIN", "N/A"),
         "ip_addresses": [],
     }
