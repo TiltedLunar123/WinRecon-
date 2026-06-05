@@ -48,6 +48,20 @@ class TestFinding(unittest.TestCase):
         self.assertEqual(f.detail, "")
         self.assertEqual(f.remediation, "")
 
+    def test_hashable_and_dedupable(self) -> None:
+        a = Finding("TST-001", "Cat", "Title", "WARNING", "Desc", detail="d", remediation="r")
+        b = Finding("TST-001", "Cat", "Title", "WARNING", "Desc", detail="d", remediation="r")
+        c = Finding("TST-002", "Cat", "Title", "WARNING", "Desc")
+        # Equal findings must hash equal so a set collapses the duplicate.
+        self.assertEqual(a, b)
+        self.assertEqual(hash(a), hash(b))
+        self.assertEqual(len({a, b, c}), 2)
+
+    def test_usable_as_dict_key(self) -> None:
+        f = Finding("X-001", "C", "T", "PASS", "D")
+        counts = {f: 1}
+        self.assertEqual(counts[f], 1)
+
 
 class TestCalculateScore(unittest.TestCase):
     def test_perfect_score(self) -> None:
