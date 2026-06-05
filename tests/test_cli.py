@@ -30,6 +30,14 @@ class TestParseArguments(unittest.TestCase):
             args = parse_arguments()
             self.assertEqual(args.timeout, 120)
 
+    def test_zero_timeout_rejected(self) -> None:
+        with patch("sys.argv", ["winrecon", "--timeout", "0"]), self.assertRaises(SystemExit):
+            parse_arguments()
+
+    def test_negative_timeout_rejected(self) -> None:
+        with patch("sys.argv", ["winrecon", "--timeout", "-5"]), self.assertRaises(SystemExit):
+            parse_arguments()
+
     def test_quiet_flag(self) -> None:
         with patch("sys.argv", ["winrecon", "--quiet"]):
             args = parse_arguments()
