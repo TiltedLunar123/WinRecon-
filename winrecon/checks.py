@@ -164,7 +164,7 @@ def check_local_admins(log: logging.Logger) -> List[Finding]:
 
     severity = "CRITICAL" if len(members) > 3 else ("WARNING" if len(members) > 2 else "PASS")
     findings.append(Finding(
-        "ADM-001", "Admin Accounts",
+        "ADM-002", "Admin Accounts",
         f"Local Administrators group has {len(members)} member(s)",
         severity,
         "Excessive local admin accounts increase lateral movement risk.",

@@ -14,6 +14,7 @@ from winrecon.checks import (
     check_credential_guard,
     check_event_log_service,
     check_installed_software,
+    check_local_admins,
     check_network_shares,
     check_powershell_settings,
     check_rdp,
@@ -406,6 +407,27 @@ class TestCheckInstalledSoftware(unittest.TestCase):
         findings = check_installed_software(MagicMock())
         self.assertTrue(len(findings) >= 1)
         self.assertTrue(any("0 installed" in f.title for f in findings))
+
+
+class TestCheckLocalAdmins(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_query_failure_uses_adm001(self, mock_cmd: MagicMock) -> None:
+        mock_cmd.return_value = ""
+        findings = check_local_admins(MagicMock())
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].check_id, "ADM-001")
+
+    @patch("winrecon.checks.run_command")
+    def test_result_uses_distinct_id(self, mock_cmd: MagicMock) -> None:
+        mock_cmd.return_value = (
+            "Members\n-------\nAdministrator\njude\n"
+            "The command completed successfully."
+        )
+        findings = check_local_admins(MagicMock())
+        self.assertEqual(len(findings), 1)
+        # The real result must not collide with the query-failure id.
+        self.assertEqual(findings[0].check_id, "ADM-002")
+        self.assertNotEqual(findings[0].check_id, "ADM-001")
 
 
 if __name__ == "__main__":
