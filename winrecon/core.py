@@ -167,6 +167,9 @@ class Finding:
             return NotImplemented
         return self.to_dict() == other.to_dict()
 
+    def __hash__(self) -> int:
+        return hash(tuple(sorted(self.to_dict().items())))
+
 
 def is_admin() -> bool:
     try:

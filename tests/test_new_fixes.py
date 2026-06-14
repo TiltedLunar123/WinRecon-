@@ -67,6 +67,229 @@ class TestFindingReprAndEq(unittest.TestCase):
         self.assertNotEqual(f, "not a finding")
 
 
+class TestFindingHash(unittest.TestCase):
+    def test_finding_is_hashable(self) -> None:
+        f = Finding("T-001", "C", "Title", "PASS", "D")
+        hash(f)
+
+    def test_equal_findings_have_equal_hashes(self) -> None:
+        f1 = Finding("T-001", "C", "Title", "PASS", "D", detail="x", remediation="y")
+        f2 = Finding("T-001", "C", "Title", "PASS", "D", detail="x", remediation="y")
+        self.assertEqual(hash(f1), hash(f2))
+
+    def test_findings_usable_in_set(self) -> None:
+        f1 = Finding("T-001", "C", "Title", "PASS", "D")
+        f2 = Finding("T-001", "C", "Title", "PASS", "D")
+        f3 = Finding("T-002", "C", "Different", "PASS", "D")
+        deduped = {f1, f2, f3}
+        self.assertEqual(len(deduped), 2)
+
+
+class TestSystemInfoScanTime(unittest.TestCase):
+    def test_scan_time_is_rfc3339_with_offset(self) -> None:
+        import datetime as _dt
+
+        from winrecon.checks import collect_system_info
+        log = MagicMock()
+        with patch("winrecon.checks.run_command", return_value=""):
+            info = collect_system_info(log)
+        scan_time = info["scan_time"]
+        parsed = _dt.datetime.fromisoformat(scan_time)
+        self.assertIsNotNone(parsed.tzinfo)
+        self.assertEqual(parsed.utcoffset(), _dt.timedelta(0))
+
+
+class TestUninterestingIpFilter(unittest.TestCase):
+    def test_loopback_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("127.0.0.1"))
+
+    def test_ipv6_loopback_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("::1"))
+
+    def test_apipa_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("169.254.1.5"))
+
+    def test_link_local_v6_filtered(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertTrue(_is_uninteresting_ip("fe80::1234:5678"))
+        self.assertTrue(_is_uninteresting_ip("FE80::abcd"))
+
+    def test_real_addresses_kept(self) -> None:
+        from winrecon.checks import _is_uninteresting_ip
+        self.assertFalse(_is_uninteresting_ip("10.0.0.5"))
+        self.assertFalse(_is_uninteresting_ip("192.168.1.10"))
+        self.assertFalse(_is_uninteresting_ip("8.8.8.8"))
+        self.assertFalse(_is_uninteresting_ip("2001:db8::1"))
+
+
+class TestPartialReportFailureLogging(unittest.TestCase):
+    SCORE = {
+        "score": 100, "grade": "A", "critical": 0, "warning": 0,
+        "pass": 0, "info": 0, "total_findings": 0,
+    }
+
+    def test_html_failure_logs_partial(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report",
+                          side_effect=OSError("disk full")):
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0][0], "HTML")
+        self.assertTrue(any("Partial success" in str(c)
+                            for c in log.warning.call_args_list))
+        self.assertTrue(any("HTML" in str(c)
+                            for c in log.error.call_args_list))
+
+    def test_both_succeed_logs_saved(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report"):
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
+        self.assertEqual(len(saved), 2)
+        self.assertEqual(failed, [])
+        self.assertTrue(any("Reports saved to" in str(c)
+                            for c in log.info.call_args_list))
+
+    def test_json_failure_logs_total_failure(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json",
+                          side_effect=OSError("permission denied")), \
+                 patch.object(cli_mod, "generate_html_report",
+                          side_effect=OSError("permission denied")):
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=False, no_html=False, log=log,
+            )
+        self.assertEqual(saved, [])
+        self.assertEqual(len(failed), 2)
+        self.assertTrue(any("No reports were written" in str(c)
+                            for c in log.error.call_args_list))
+
+    def test_json_only_skips_html(self) -> None:
+        from winrecon import cli as cli_mod
+        log = MagicMock()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(cli_mod, "export_json"), \
+                 patch.object(cli_mod, "generate_html_report") as mock_html:
+            saved, failed = cli_mod.write_reports(
+                {}, [], self.SCORE,
+                Path(tmp), "host", "2026-01-01_00-00-00",
+                json_only=True, no_html=False, log=log,
+            )
+        self.assertEqual(len(saved), 1)
+        mock_html.assert_not_called()
+
+
+class TestAdminCheckIds(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_success_case_uses_adm_002(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_run.return_value = (
+            "Alias name     Administrators\n"
+            "Comment\n"
+            "Members\n"
+            "-------\n"
+            "Administrator\n"
+            "Jude\n"
+            "The command completed successfully.\n"
+        )
+        log = MagicMock()
+        result = check_local_admins(log)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].check_id, "ADM-002")
+        self.assertIn("2 member", result[0].title)
+
+    @patch("winrecon.checks.run_command")
+    def test_failure_case_keeps_adm_001(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_local_admins
+        mock_run.return_value = ""
+        log = MagicMock()
+        result = check_local_admins(log)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].check_id, "ADM-001")
+
+
+class TestAntivirusSigAge(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_unparseable_sig_age_emits_warning(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:Unknown\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "WARNING")
+        self.assertIn("could not be parsed", av003[0].title)
+        self.assertIn("Unknown", av003[0].detail)
+
+    @patch("winrecon.checks.run_command")
+    def test_empty_sig_age_emits_warning(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "WARNING")
+
+    @patch("winrecon.checks.run_command")
+    def test_current_sig_age_still_passes(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_antivirus
+        mock_run.return_value = "AE:TRUE\nRTP:TRUE\nSigAge:2\n"
+        log = MagicMock()
+        result = check_antivirus(log)
+        av003 = [f for f in result if f.check_id == "AV-003"]
+        self.assertEqual(len(av003), 1)
+        self.assertEqual(av003[0].severity, "PASS")
+
+
+class TestPasswordPolicyMessaging(unittest.TestCase):
+    @patch("winrecon.checks.run_command")
+    def test_short_password_recommends_14(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 8\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertIn(">= 14", pwd002.title)
+        self.assertNotIn(">= 12", pwd002.title)
+
+    @patch("winrecon.checks.run_command")
+    def test_borderline_length_12_still_flagged(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 12\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertEqual(pwd002.severity, "WARNING")
+        self.assertIn(">= 14", pwd002.title)
+
+    @patch("winrecon.checks.run_command")
+    def test_compliant_length_14_passes(self, mock_run: MagicMock) -> None:
+        from winrecon.checks import check_password_policy
+        mock_run.return_value = "Minimum password length: 14\nLockout threshold: 5\n"
+        log = MagicMock()
+        result = check_password_policy(log)
+        pwd002 = [f for f in result if f.check_id == "PWD-002"][0]
+        self.assertEqual(pwd002.severity, "PASS")
+
+
 class TestEscSingleQuotes(unittest.TestCase):
     def test_single_quotes_escaped(self) -> None:
         result = _esc("it's a test")
