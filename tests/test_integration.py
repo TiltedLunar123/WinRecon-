@@ -1,4 +1,4 @@
-"""Integration tests — mock full scan workflows end-to-end."""
+"""Integration tests, mock full scan workflows end-to-end."""
 
 import json
 import os
@@ -195,11 +195,11 @@ class TestCustomKeywordsIntegration(unittest.TestCase):
         mock_cmd.return_value = csv_output
         log = MagicMock()
 
-        # Without custom keywords — should not flag
+        # Without custom keywords, should not flag
         findings_default = check_scheduled_tasks(log)
         flagged_default = [f for f in findings_default if f.severity in ("WARNING", "CRITICAL") and "suspicious" in f.title.lower()]
 
-        # With custom keywords — should flag
+        # With custom keywords, should flag
         findings_custom = check_scheduled_tasks(
             log,
             suspicious_keywords=["custom_evil_marker"],

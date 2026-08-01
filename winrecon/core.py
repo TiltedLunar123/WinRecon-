@@ -193,13 +193,13 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> str:
             creationflags=cflags,
         )
         if result.stderr and result.stderr.strip():
-            log.debug("Command stderr: %s — %s", cmd[:80], result.stderr.strip()[:200])
+            log.debug("Command stderr: %s, %s", cmd[:80], result.stderr.strip()[:200])
         return result.stdout.strip()
     except subprocess.TimeoutExpired:
         log.debug("Command timed out after %ds: %s", timeout, cmd)
         return ""
     except Exception as exc:
-        log.debug("Command failed: %s — %s", cmd[:80], exc)
+        log.debug("Command failed: %s, %s", cmd[:80], exc)
         return ""
 
 

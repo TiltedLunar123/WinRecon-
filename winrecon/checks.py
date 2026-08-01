@@ -221,7 +221,7 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
     else:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} — meets baseline",
+            f"Minimum password length is {min_len}, meets baseline",
             "PASS",
             "Password length meets or exceeds CIS recommendations.",
             detail=detail_text,
@@ -250,7 +250,7 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
             else:
                 findings.append(Finding(
                     "PWD-003", "Password Policy",
-                    f"Account lockout threshold is {lockout_val} — acceptable",
+                    f"Account lockout threshold is {lockout_val}, acceptable",
                     "PASS",
                     "Lockout threshold is configured within recommended range.",
                 ))
@@ -406,7 +406,7 @@ def check_smb_v1(log: logging.Logger) -> List[Finding]:
     elif smb1_val is None and not mrxsmb10_running:
         findings.append(Finding(
             "SMB-001", "SMB Security",
-            "SMBv1 registry key not found — likely disabled by default",
+            "SMBv1 registry key not found, likely disabled by default",
             "INFO",
             "Modern Windows versions disable SMBv1 by default. Verify manually.",
             remediation="Explicitly disable: Set-SmbServerConfiguration -EnableSMB1Protocol $false"
@@ -645,7 +645,7 @@ def check_antivirus(log: logging.Logger) -> List[Finding]:
     elif sig_age >= 0:
         findings.append(Finding(
             "AV-003", "Antivirus",
-            f"Antivirus signatures are {sig_age} day(s) old — current",
+            f"Antivirus signatures are {sig_age} day(s) old, current",
             "PASS",
             "Signatures are up to date.",
         ))
@@ -1218,13 +1218,13 @@ def run_all_checks(
             crit = sum(1 for f in results if f.severity == "CRITICAL")
             warn = sum(1 for f in results if f.severity == "WARNING")
             if crit:
-                log.info("  └─ %s: %d finding(s) — %d CRITICAL", name, len(results), crit)
+                log.info("  └─ %s: %d finding(s), %d CRITICAL", name, len(results), crit)
             elif warn:
-                log.info("  └─ %s: %d finding(s) — %d WARNING(s)", name, len(results), warn)
+                log.info("  └─ %s: %d finding(s), %d WARNING(s)", name, len(results), warn)
             else:
-                log.info("  └─ %s: %d finding(s) — OK", name, len(results))
+                log.info("  └─ %s: %d finding(s), all OK", name, len(results))
         except Exception as exc:
-            log.error("  └─ %s: CHECK FAILED — %s", name, exc)
+            log.error("  └─ %s: CHECK FAILED, %s", name, exc)
             all_findings.append(Finding(
                 "ERR-000", name, f"Check failed: {name}",
                 "WARNING",

@@ -1,4 +1,4 @@
-"""WinRecon — Windows Security Auditing & Hardening Toolkit."""
+"""WinRecon: Windows Security Auditing & Hardening Toolkit."""
 
 from winrecon.checks import (
     collect_system_info,

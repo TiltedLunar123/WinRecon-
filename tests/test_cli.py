@@ -1,4 +1,4 @@
-"""Tests for winrecon.cli — argument parsing, keyword loading, banner."""
+"""Tests for winrecon.cli, argument parsing, keyword loading, banner."""
 
 import json
 import os

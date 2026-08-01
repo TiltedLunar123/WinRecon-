@@ -1,6 +1,8 @@
-# Contributing to WinRecon
+# Contributing
 
-Thanks for your interest in contributing to WinRecon!
+The main rule: no third-party runtime dependencies. WinRecon has to run on a machine
+where you cannot install anything, and that constraint is the point of the tool. Dev
+dependencies for testing and linting are fine.
 
 ## Development Setup
 

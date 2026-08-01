@@ -1,4 +1,4 @@
-"""Tests for v4.1.0 fixes — severity validation, repr/eq, timeout passthrough,
+"""Tests for v4.1.0 fixes, severity validation, repr/eq, timeout passthrough,
 duplicate check IDs, empty report, schema validation, run_all_checks error handling."""
 
 import json

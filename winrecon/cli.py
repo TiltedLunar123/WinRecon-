@@ -65,7 +65,7 @@ def setup_logging(output_dir: Path, verbose: bool = False, quiet: bool = False) 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog=TOOL_NAME,
-        description=f"{TOOL_NAME} v{VERSION} by {AUTHOR} — Windows Security Auditing & Hardening Toolkit",
+        description=f"{TOOL_NAME} v{VERSION} by {AUTHOR}. Windows Security Auditing & Hardening Toolkit",
         epilog="Run with Administrator privileges for complete results.",
     )
     parser.add_argument(

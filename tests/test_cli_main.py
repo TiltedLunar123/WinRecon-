@@ -1,4 +1,4 @@
-"""Tests for winrecon.cli.main — end-to-end CLI workflow."""
+"""Tests for winrecon.cli.main, end-to-end CLI workflow."""
 
 import logging
 import sys

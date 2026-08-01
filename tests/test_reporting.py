@@ -1,4 +1,4 @@
-"""Tests for winrecon.reporting — HTML and JSON report generation."""
+"""Tests for winrecon.reporting. HTML and JSON report generation."""
 
 import json
 import os

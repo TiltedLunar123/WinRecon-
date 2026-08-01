@@ -1,4 +1,4 @@
-"""Tests for winrecon.core — Finding, scoring, escaping, and utilities."""
+"""Tests for winrecon.core. Finding, scoring, escaping, and utilities."""
 
 import sys
 import unittest
