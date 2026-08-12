@@ -13,6 +13,8 @@ you are auditing. That was the whole point: a lot of the auditing tools I wanted
 during lab work needed a package manager and network access, which is exactly what you
 do not have on a locked-down box.
 
+![Console output from a run: the version banner, two warnings that it is not running as Administrator, then each check reporting its findings. Local User Accounts one warning, Local Administrators all OK, Password Policy one critical, Open Ports two critical. It ends with the audit complete summary: score 0 out of 100, grade F, 3 critical, 8 warnings, 11 passed, 6 info, 28 findings.](screenshots/console_output.png)
+
 ## Running it
 
 ```bash
@@ -115,6 +117,12 @@ The HTML report is a single self-contained file. All CSS is inline, there are no
 external fonts or scripts, and it opens offline in any browser. That matters more than
 it sounds like it should when you are handing a report to someone whose machine you do
 not control.
+
+![The top of an HTML report: a header with the hostname and scan time, then five tiles reading 0 out of 100 security score grade F, 3 critical, 8 warnings, 11 passed, 6 info. Below that a system information panel with hostname, OS, version, architecture, current user, admin privileges, domain and IP address, then the first finding, a warning that local users could not be enumerated, with its remediation.](screenshots/report_dashboard.png)
+
+Both images above come from a real run. The machine name, user and IP address are
+replaced with placeholders; the 28 findings, the counts and the score are what the run
+actually produced, on a standard user account rather than an elevated one.
 
 The JSON export carries the same data in a structure meant for ingestion:
 
