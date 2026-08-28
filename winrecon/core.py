@@ -167,6 +167,18 @@ class Finding:
             return NotImplemented
         return self.to_dict() == other.to_dict()
 
+    def __hash__(self) -> int:
+        return hash((
+            self.check_id, self.category, self.title,
+            self.severity, self.description, self.detail,
+            self.remediation,
+        ))
+
+
+def _get_hostname() -> str:
+    import platform as _platform
+    return _platform.node()
+
 
 def is_admin() -> bool:
     try:
