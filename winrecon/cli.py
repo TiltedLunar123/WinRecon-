@@ -62,6 +62,16 @@ def setup_logging(output_dir: Path, verbose: bool = False, quiet: bool = False) 
     return logger
 
 
+def _positive_int(value: str) -> int:
+    """argparse type for an integer of at least 1."""
+    ivalue = int(value)
+    if ivalue < 1:
+        raise argparse.ArgumentTypeError(
+            f"must be a positive integer of at least 1 (got {value})"
+        )
+    return ivalue
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog=TOOL_NAME,
@@ -96,7 +106,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timeout", "-t",
-        type=int,
+        type=_positive_int,
         default=DEFAULT_TIMEOUT,
         help=f"Timeout in seconds for each system command (default: {DEFAULT_TIMEOUT}).",
     )

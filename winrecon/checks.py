@@ -42,7 +42,7 @@ def collect_system_info(log: logging.Logger) -> Dict[str, Any]:
         "current_user": getpass.getuser(),
         "is_admin": is_admin(),
         "python_version": platform.python_version(),
-        "scan_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "scan_time": datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z"),
         "domain": os.environ.get("USERDOMAIN", "N/A"),
         "ip_addresses": [],
     }
@@ -164,7 +164,7 @@ def check_local_admins(log: logging.Logger) -> List[Finding]:
 
     severity = "CRITICAL" if len(members) > 3 else ("WARNING" if len(members) > 2 else "PASS")
     findings.append(Finding(
-        "ADM-001", "Admin Accounts",
+        "ADM-002", "Admin Accounts",
         f"Local Administrators group has {len(members)} member(s)",
         severity,
         "Excessive local admin accounts increase lateral movement risk.",
@@ -212,7 +212,7 @@ def check_password_policy(log: logging.Logger) -> List[Finding]:
     elif min_len < 12:
         findings.append(Finding(
             "PWD-002", "Password Policy",
-            f"Minimum password length is {min_len} (recommended >= 12)",
+            f"Minimum password length is {min_len} (recommended >= 14)",
             "WARNING",
             "CIS benchmarks recommend a minimum of 14 characters.",
             detail=detail_text,

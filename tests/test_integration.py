@@ -306,6 +306,13 @@ class TestCollectSystemInfo(unittest.TestCase):
         for key in expected_keys:
             self.assertIn(key, info)
 
+    def test_scan_time_carries_timezone_offset(self) -> None:
+        log = MagicMock()
+        info = collect_system_info(log)
+        # Expect a trailing UTC offset like " +0000" / " -0400" so the
+        # timestamp is unambiguous once the report leaves the machine.
+        self.assertRegex(info["scan_time"], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}$")
+
 
 if __name__ == "__main__":
     unittest.main()
